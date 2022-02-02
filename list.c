@@ -164,6 +164,7 @@ int List_count(List* pList)
 {
     return pList->size;
 }
+
 void* List_first(List* pList)
 {
     //set first item = curr item
@@ -180,6 +181,7 @@ void* List_first(List* pList)
     pList->list_bound = LIST_OOB_FALSE;
     return NULL;
 }
+
 void* List_last(List* pList)
 {
     //same logic as list_first
@@ -195,6 +197,7 @@ void* List_last(List* pList)
     pList->list_bound = LIST_OOB_FALSE;
     return NULL;
 }
+
 void* List_next(List* pList)
 {
     // empty list or already out of bound
@@ -227,6 +230,7 @@ void* List_next(List* pList)
         }
     }
 }
+
 void* List_prev(List* pList)
 {
     // empty list or already out of bound
@@ -259,6 +263,7 @@ void* List_prev(List* pList)
         }
     }
 }
+
 void* List_curr(List* pList)
 {   //return curr of node at list_curr if not null
     if (pList->list_current != NULL)
@@ -330,6 +335,7 @@ int List_insert_after(List* pList, void* pItem)
     }
     return -1;
 }
+
 int List_insert_before(List* pList, void* pItem)
 {
     //if nodes are available, add and change position of empty node array
@@ -388,18 +394,21 @@ int List_insert_before(List* pList, void* pItem)
 
     return -1;
 }
+
 int List_append(List* pList, void* pItem)
 {
     //set curr to last item using list_last func, then use insert_after to insert
     List_last(pList);
     return List_insert_after(pList, pItem);
 }
+
 int List_prepend(List* pList, void* pItem)
 {
     //set curr to first item using list_first func, then use insert_before to insert *same as append*
     List_first(pList);
     return List_insert_before(pList, pItem);
 }
+
 void* List_remove(List* pList)
 {
     Node *node = pList->list_current;
@@ -451,6 +460,7 @@ void* List_remove(List* pList)
     }
 
 }
+
 void* List_trim(List* pList)
 {
     //empty list returns null
@@ -463,13 +473,13 @@ void* List_trim(List* pList)
     {
         void *item = pList->list_tail->node_item;
         Node *prevTail = pList->list_tail;
-        pList->list_tail = NULL;
         pList->list_head = NULL;
         pList->list_current = NULL;
         pList->size = 0;
         pList->list_bound = LIST_OOB_FALSE;
         removeNode(pList->list_tail->node_index);
-        return item;
+        pList->list_tail = NULL;
+        return prevTail->node_item;
     }
     else //list has data
     {
@@ -478,11 +488,14 @@ void* List_trim(List* pList)
         Node *prevTail = pList->list_tail;
         newTail->node_next = NULL;
         pList->list_tail = newTail;
+        pList->list_current = newTail;
         removeNode(prevTail->node_index);
+        pList->size = pList->size - 1;
         return item;
         
     }
 }
+
 void List_concat(List* pList1, List* pList2)
 {
     //plist2 has data
@@ -497,12 +510,12 @@ void List_concat(List* pList1, List* pList2)
             pList1->list_tail = pList2->list_tail;
             pList1->size = pList1->size + pList2->size;
             //delete plist2
+            removeHead(pList2->list_index);
             pList2->list_head = NULL;
             pList2->list_tail = NULL;
             pList2->list_current = NULL;
             pList2->size = 0;
             pList2->list_bound = LIST_OOB_FALSE;
-            removeHead(pList2->list_index);
         }
         else //plist1 has no data
         {
@@ -511,6 +524,7 @@ void List_concat(List* pList1, List* pList2)
             pList1->size = pList2->size;
             pList1->list_current = pList1->list_head;
             //delete plist2
+            removeHead(pList2->list_index);
             pList2->list_head->node_previous = NULL;
             pList2->list_tail->node_next = NULL;
             pList2->list_head = NULL;
@@ -518,21 +532,23 @@ void List_concat(List* pList1, List* pList2)
             pList2->list_current = NULL;
             pList2->size = 0;
             pList2->list_bound = LIST_OOB_FALSE;
-            removeHead(pList2->list_index);
+            
         }
     }
     else //plist2 has no data
     {
         //just delete plist2
-        //pList2->list_head->node_previous = NULL;
-        //pList2->list_tail->node_next = NULL;
-        //pList2->list_head = NULL;
-        //pList2->list_tail = NULL;
-        //pList2->list_current = NULL;
-        pList2->list_bound = LIST_OOB_FALSE;
         removeHead(pList2->list_index);
+        pList2->list_head->node_previous = NULL;
+        pList2->list_tail->node_next = NULL;
+        pList2->list_head = NULL;
+        pList2->list_tail = NULL;
+        pList2->list_current = NULL;
+        pList2->list_bound = LIST_OOB_FALSE;
+        
     }
 }
+
 typedef void (*FREE_FN)(void* pItem);
 void List_free(List* pList, FREE_FN pItemFreeFn)
 {
@@ -571,4 +587,46 @@ void List_free(List* pList, FREE_FN pItemFreeFn)
 }
 
 typedef bool (*COMPARATOR_FN)(void* pItem, void* pComparisonArg);
-void* List_search(List* pList, COMPARATOR_FN pComparator, void* pComparisonArg);
+void* List_search(List* pList, COMPARATOR_FN pComparator, void* pComparisonArg)
+{
+    if (pList->list_bound == LIST_OOB_START)
+    {
+        List_first(pList);
+    }
+    if (pList->size == 0)
+    {
+        return NULL;
+    }
+    int counter = 1;
+    Node *node = pList->list_current;
+    void *item_ret = NULL;
+    while(pList->list_current != NULL)
+    {
+        item_ret = List_curr(pList);
+        if (pComparator(item_ret, pComparisonArg))
+        {
+            return item_ret;
+        }
+        else
+        {
+            if (pList->list_bound == LIST_OOB_END)
+            {
+                if (counter)
+                {
+                    pList->list_current = pList->list_head;
+                    pList->list_bound = LIST_OOB_FALSE;
+                }
+                else
+                {
+                    --counter;
+                    return NULL;
+                }
+            }
+            else
+            {
+                List_next(pList);
+            }
+        }
+    }
+    return NULL;
+}
